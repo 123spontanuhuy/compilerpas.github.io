@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Pascal Compiler</title>
+<style>
+body { font-family: Arial; background:#f1f1f1; padding:20px; }
+textarea { width:100%; height:200px; }
+#output { background:white; padding:10px; margin-top:20px; white-space:pre; }
+button { padding:10px 20px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2>Mini Pascal Compiler</h2>
+
+<textarea id="code">
+program Hello;
+var a: integer;
+begin
+  a := 10;
+  writeln('Hello World');
+  writeln('a = ', a);
+  writeln('1 + 2 * (3 + 1) = ', 1 + 2 * (3 + 1));
+end.
+</textarea>
+
+<br>
+<button onclick="runPascal()">Run</button>
+
+<div id="output"></div>
+
+<script>
+function runPascal() {
+    let code = document.getElementById("code").value;
+    let output = "";
+    let vars = {}; // tempat penyimpanan variabel
+
+    // Hapus baris "program..."
+    code = code.replace(/program\s+\w+;/i, "");
+
+    // Hapus deklarasi var
+    code = code.replace(/var[\s\S]*?begin/i, "begin");
+
+    // Ambil isi antara begin ... end.
+    let beginBlock = code.match(/begin([\s\S]*?)end\./i);
+    if (!beginBlock) {
+        document.getElementById("output").innerText = "Error: Missing begin...end.";
+        return;
+    }
+
+    let lines = beginBlock[1].trim().split("\n");
+
+    for (let line of lines) {
+        line = line.trim();
+
+        // Assignment variable
+        if (line.includes(":=")) {
+            let [name, expr] = line.replace(";", "").split(":=");
+            name = name.trim();
+            expr = expr.trim();
+
+            try {
+                let jsExpr = expr.replace(/\b(\w+)\b/g, v => vars[v] !== undefined ? vars[v] : v);
+                vars[name] = eval(jsExpr);
+            } catch {
+                output += "Error evaluating expression: " + line + "\n";
+            }
+        }
+
+        // writeln
+        if (line.startsWith("writeln")) {
+            let content = line.replace("writeln", "").replace("(", "").replace(");", "").trim();
+            
+            let parts = content.split(",");
+            let finalText = "";
+
+            for (let p of parts) {
+                p = p.trim();
+
+                if (p.startsWith("'") && p.endsWith("'")) {
+                    finalText += p.slice(1, -1);
+                } else {
+                    // variabel atau ekspresi
+                    try {
+                        let jsExpr = p.replace(/\b(\w+)\b/g, v => vars[v] !== undefined ? vars[v] : v);
+                        finalText += eval(jsExpr);
+                    } catch {
+                        finalText += "[Error]";
+                    }
+                }
+            }
+
+            output += finalText + "\n";
+        }
+    }
+
+    document.getElementById("output").innerText = output;
+}
+</script>
+
+</body>
+</html>
